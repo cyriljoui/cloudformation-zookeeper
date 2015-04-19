@@ -62,6 +62,11 @@
       "Description" : "(Optional) If passed, only launch nodes in these AZs (e.g., 'us-east-1a,us-east-1b'). Note: these must match up with the passed Subnets.",
       "Type" : "CommaDelimitedList",
       "Default" : ""
+    },
+    "LbScheme": {
+      "Description" : "(Optional) Use this to allow the ZK to be accessed from the web",
+      "Type" : "String",
+      "Default" : "internal"
     }
   },
 
@@ -146,7 +151,7 @@
         "MinSize" : "1",
         "MaxSize" : "9",
         "DesiredCapacity" : { "Ref" : "ClusterSize" },
-        "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ],
+        "LoadBalancerNames" : [ { "Ref" : "PrivateElb" }, { "Ref" : "PublicElb" } ],
         "VPCZoneIdentifier" : { "Ref" : "Subnets" },
         "Tags" : [
           {
@@ -185,7 +190,7 @@
           "   -e 'AWS_ACCESS_KEY_ID=", { "Ref" : "HostKeys" }, "'",
           "   -e 'AWS_SECRET_ACCESS_KEY=", {"Fn::GetAtt": ["HostKeys", "SecretAccessKey"]}, "'",
           "   -e 'AWS_REGION=", { "Ref" : "ExhibitorS3Region" }, "'",
-          "   -e \"HOSTNAME=`ec2metadata --public-hostname`\"",
+          "   -e \"HOSTNAME=`ec2metadata --local-hostname`\"",
           "   ", { "Ref": "DockerImage" }, "\n",
           "runit-service enable zk\n",
 
@@ -238,8 +243,27 @@
           [ { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "SourceSecurityGroupId" : { "Ref" : "ClientSecurityGroup"} } ]
       }
     },
-
-    "ElasticLoadBalancer" : {
+    "PublicElb" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "CrossZone": "true",
+        "SecurityGroups": [{ "Ref": "LbSecurityGroup" }, { "Ref": "AdminSecurityGroup" }],
+        "Subnets": { "Ref": "Subnets" },
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : "8181",
+          "Protocol" : "HTTP"
+        } ],
+        "HealthCheck" : {
+          "Target" : "HTTP:8181/exhibitor/v1/cluster/state",
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "30",
+          "Timeout" : "5"
+        }
+      }
+    },
+    "PrivateElb" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
         "CrossZone": "true",
@@ -269,7 +293,12 @@
   "Outputs" : {
     "ExhibitorDiscoveryUrl" : {
       "Value" : { "Fn::Join" : ["", [
-        "http://", { "Fn::GetAtt" : [ "ElasticLoadBalancer", "DNSName" ]}, "/exhibitor/v1/cluster/list"
+        "http://", { "Fn::GetAtt" : [ "PrivateElb", "DNSName" ]}, "/exhibitor/v1/cluster/list"
+      ]]}
+    },
+    "ExhibitorAdminUrl" : {
+      "Value" : { "Fn::Join" : ["", [
+        "http://", { "Fn::GetAtt" : [ "PublicElb", "DNSName" ]}, "/exhibitor/v1/cluster/list"
       ]]}
     },
     "ClientSecurityGroup" : {
