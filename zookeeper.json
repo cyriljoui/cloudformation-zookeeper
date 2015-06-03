@@ -228,7 +228,8 @@
         "Listeners" : [ {
           "LoadBalancerPort" : "80",
           "InstancePort" : "8181",
-          "Protocol" : "HTTP"
+          "Protocol" : "HTTP",
+          "PolicyNames": ["LBSticky"]
         } ],
         "HealthCheck" : {
           "Target" : "HTTP:8181/exhibitor/v1/cluster/state",
@@ -236,7 +237,10 @@
           "UnhealthyThreshold" : "5",
           "Interval" : "30",
           "Timeout" : "5"
-        }
+        },
+        "LBCookieStickinessPolicy": [{
+          "PolicyName": "LBSticky"
+        }]
       }
     },
     "PrivateElb" : {
