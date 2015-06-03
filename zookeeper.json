@@ -34,8 +34,12 @@
       "Type" : "String",
       "Default" : "mbabineau/zookeeper-exhibitor:latest"
     },
-    "InstanceProfile": {
-      "Description": "InstanceProfile tied to role that has read/write access to the S3 bucket. This is listed on the Role's page in IAM, in the format of arn:aws:iam::{account id}:instance-profile/{instance profile id}",
+    "AccessKeyId": {
+      "Description": "Access Key",
+      "Type": "String"
+    },
+    "SecretKey": {
+      "Description": "Secret Key",
       "Type": "String"
     },
 
@@ -142,7 +146,6 @@
         "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI"] },
         "SecurityGroups" : [ { "Ref" : "ServerSecurityGroup" }, { "Ref" : "AdminSecurityGroup" }  ],
         "AssociatePublicIpAddress": "true",
-        "IamInstanceProfile": {"Ref": "InstanceProfile"},
         "InstanceType" : { "Ref" : "InstanceType" },
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
           "#!/bin/bash -ex\n",
@@ -154,23 +157,14 @@
           "  exit 1\n",
           "}\n",
 
-          "curl http://stedolan.github.io/jq/download/linux64/jq > jq\n",
-          "chmod +x jq\n",
-
-          "# Get role credentials\n",
-          "export ROLE=`curl http://169.254.169.254/latest/meta-data/iam/security-credentials/`\n",
-          "CREDS=`curl http://169.254.169.254/latest/meta-data/iam/security-credentials/$ROLE`\n",
-          "export AWS_ACCESS_KEY_ID=`echo $CREDS | ./jq '.AccessKeyId'`\n",
-          "export AWS_SECRET_KEY=`echo $CREDS | ./jq '.SecretAccessKey'`\n",
-
           "# Set up and start the Exhibitor+ZooKeeper service\n",
           "sudo docker pull ", { "Ref": "DockerImage" }, "\n",
           "runit-service create zk docker run ",
           "   -p 8181:8181 -p 2181:2181 -p 2888:2888 -p 3888:3888",
           "   -e 'S3_BUCKET=", { "Ref" : "ExhibitorS3Bucket" }, "'",
           "   -e 'S3_PREFIX=", { "Ref" : "ExhibitorS3Prefix" }, "'",
-          "   -e \"AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID\"",
-          "   -e \"AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY\"",
+          "   -e 'AWS_ACCESS_KEY_ID=", {"Ref" : "AccessKeyId"}, "'",
+          "   -e 'AWS_SECRET_ACCESS_KEY=", {"Ref" : "SecretKey"}, "'",
           "   -e 'AWS_REGION=", { "Ref" : "ExhibitorS3Region" }, "'",
           "   -e \"HOSTNAME=`ec2metadata --local-hostname`\"",
           "   ", { "Ref": "DockerImage" }, "\n",

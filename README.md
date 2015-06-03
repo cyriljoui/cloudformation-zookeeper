@@ -29,8 +29,8 @@ Inbound rules are at your discretion, but you may want to include access to:
 * `2181 [tcp]` - ZooKeeper client port
 * `8181 [tcp]` - Exhibitor HTTP port (for both web UI and REST API)
 
-### 3. Create a role that has S3 privileges
-This role will be used to read/write the config to S3. Copy its instance profile arn.
+### 3. Generate a key/secret that has S3 access
+You'll input this in the creation form.
 
 ### 4. Launch the stack
 Launch the stack via the AWS console, a script, or [aws-cli](https://github.com/aws/aws-cli).
