@@ -91,7 +91,7 @@
         "AMI" : "ami-8d123ebd"
       },
       "eu-west-1" : {
-        "AMI" : "ami-8be47afc"
+        "AMI" : "ami-67273101"
       },
       "ap-southeast-1" : {
         "AMI" : "ami-64b88936"
@@ -164,7 +164,7 @@
 
           "# Set up and start the Exhibitor+ZooKeeper service\n",
           "sudo docker pull ", { "Ref": "DockerImage" }, "\n",
-          "runit-service create zk docker run ",
+          "sudo docker run ",
           "   -p 8181:8181 -p 2181:2181 -p 2888:2888 -p 3888:3888",
           "   -e 'S3_BUCKET=", { "Ref" : "ExhibitorS3Bucket" }, "'",
           "   -e 'S3_PREFIX=", { "Ref" : "ExhibitorS3Prefix" }, "'",
@@ -172,8 +172,7 @@
           "   -e 'AWS_SECRET_ACCESS_KEY=", {"Ref" : "SecretKey"}, "'",
           "   -e 'AWS_REGION=", { "Ref" : "ExhibitorS3Region" }, "'",
           "   -e \"HOSTNAME=`ec2metadata --local-hostname`\"",
-          "   ", { "Ref": "DockerImage" }, "\n",
-          "runit-service enable zk\n",
+          "   ", { "Ref": "DockerImage" }, " &\n",
 
           "# All is well so signal success\n",
           "cfn-signal -e 0 -r \"Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
